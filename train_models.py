@@ -86,6 +86,8 @@ print("Bias:", svr_bias)
 xgb = XGBRegressor(n_estimators=300)
 xgb.fit(X_train, y_train)
 
+chl_xgb_model = xgb
+
 xgb_preds = xgb.predict(X_test)
 xgb_rmse, xgb_r2, xgb_mape, xgb_bias = evaluate(y_test, xgb_preds)
 
@@ -95,6 +97,10 @@ print("R2:", xgb_r2)
 print("MAPE:", xgb_mape)
 print("Bias:", xgb_bias)
 
+chl_true = y_test
+chl_rf = rf_preds
+chl_svr = svr_preds
+chl_xgb = xgb_preds
 
 # =========================
 # Save best model
@@ -135,6 +141,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 # RANDOM FOREST
 rf = RandomForestRegressor(n_estimators=200)
 rf.fit(X_train, y_train)
+do_rf_model = rf
 
 rf_preds = rf.predict(X_test)
 rf_rmse, rf_r2, rf_mape, rf_bias = evaluate(y_test, rf_preds)
@@ -173,6 +180,10 @@ print("R2:", xgb_r2)
 print("MAPE:", xgb_mape)
 print("Bias:", xgb_bias)
 
+do_true = y_test
+do_rf = rf_preds
+do_svr = svr_preds
+do_xgb = xgb_preds
 
 # Save best model
 models = {
@@ -238,6 +249,7 @@ print("Bias:", svr_bias)
 # XGBOOST
 xgb = XGBRegressor(n_estimators=300)
 xgb.fit(X_train, y_train)
+nh3_xgb_model = xgb
 
 xgb_preds = xgb.predict(X_test)
 xgb_rmse, xgb_r2, xgb_mape, xgb_bias = evaluate(y_test, xgb_preds)
@@ -248,6 +260,10 @@ print("R2:", xgb_r2)
 print("MAPE:", xgb_mape)
 print("Bias:", xgb_bias)
 
+nh3_true = y_test
+nh3_rf = rf_preds
+nh3_svr = svr_preds
+nh3_xgb = xgb_preds
 
 # Save best model
 models = {
@@ -344,72 +360,98 @@ print("Bias:", ann_bias)
 
 import matplotlib.pyplot as plt
 
-# ==============================
-# Predictions for plotting
-# ==============================
-
-# Chlorophyll predictions
-chl_true = y_test
-chl_rf = rf_preds
-chl_svr = svr_preds
-chl_xgb = xgb_preds
-
-# DO predictions
-do_true = y_test
-do_rf = rf_preds
-do_svr = svr_preds
-do_xgb = xgb_preds
-
-# NH3 predictions
-nh3_true = y_test
-nh3_rf = rf_preds
-nh3_svr = svr_preds
-nh3_xgb = xgb_preds
-
-
-# ==============================
-# Create subplot grid
-# ==============================
-
-fig, axes = plt.subplots(3,3, figsize=(15,12))
+fig, axes = plt.subplots(3,3, figsize=(14,12))
 
 models = ["XGBoost", "SVR", "Random Forest"]
-params = ["Chlorophyll-a", "Dissolved Oxygen", "NH3-N"]
 
-preds = [
+parameters = [
+    "Chlorophyll-a (µg/L)",
+    "Dissolved Oxygen (mg/L)",
+    "NH3-N (mg/L)"
+]
+
+true_vals = [chl_true, do_true, nh3_true]
+
+pred_vals = [
     [chl_xgb, chl_svr, chl_rf],
     [do_xgb, do_svr, do_rf],
     [nh3_xgb, nh3_svr, nh3_rf]
 ]
-
-true_vals = [chl_true, do_true, nh3_true]
 
 for i in range(3):
     for j in range(3):
 
         ax = axes[i,j]
 
-        ax.scatter(true_vals[i], preds[i][j], alpha=0.7)
+        y_true = true_vals[i]
+        y_pred = pred_vals[i][j]
 
-        ax.plot(
-            [true_vals[i].min(), true_vals[i].max()],
-            [true_vals[i].min(), true_vals[i].max()],
-            'k--'
-        )
+        ax.scatter(y_true, y_pred, alpha=0.7)
 
-        ax.set_title(f"{models[j]}")
-        ax.set_xlabel("Measured Values")
-        ax.set_ylabel("Predicted Values")
+        min_val = min(y_true.min(), y_pred.min())
+        max_val = max(y_true.max(), y_pred.max())
+
+        ax.plot([min_val, max_val],
+                [min_val, max_val],
+                'k--')
+
+        # Column titles only for first row
+        if i == 0:
+            ax.set_title(models[j], fontsize=12)
+
+        # Row labels
+        if j == 0:
+            ax.set_ylabel(parameters[i] + "\nPredicted")
+
+        # X axis labels only bottom row
+        if i == 2:
+            ax.set_xlabel("Measured Values")
 
         ax.grid(True)
 
-# Row labels
-axes[0,0].set_ylabel("Chlorophyll-a\nPredicted")
-axes[1,0].set_ylabel("Dissolved Oxygen\nPredicted")
-axes[2,0].set_ylabel("NH3-N\nPredicted")
+plt.tight_layout()
+
+plt.savefig("results/model_comparison_scatter.png", dpi=600)
+
+plt.show()
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Sentinel-2 bands
+features = ['B2','B3','B4','B5','B6','B7','B8','B8A']
+
+# Feature importance
+chl_importance = chl_xgb_model.feature_importances_
+do_importance = do_rf_model.feature_importances_
+nh3_importance = nh3_xgb_model.feature_importances_
+
+# Create subplots
+fig, axes = plt.subplots(1,3, figsize=(15,5))
+
+importance_list = [chl_importance, do_importance, nh3_importance]
+
+titles = [
+    "Chlorophyll-a (XGBoost)",
+    "Dissolved Oxygen (Random Forest)",
+    "NH3-N (XGBoost)"
+]
+
+for i in range(3):
+
+    sorted_idx = np.argsort(importance_list[i])
+
+    axes[i].barh(
+        np.array(features)[sorted_idx],
+        importance_list[i][sorted_idx]
+    )
+
+    axes[i].set_title(titles[i])
+    axes[i].set_xlabel("Feature Importance")
+    axes[i].set_ylabel("Sentinel-2 Bands")
 
 plt.tight_layout()
 
-plt.savefig("results/model_comparison_scatter.png", dpi=300)
+plt.savefig("results/feature_importance.png", dpi=600)
 
 plt.show()
