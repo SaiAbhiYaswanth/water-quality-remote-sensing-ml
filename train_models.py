@@ -337,3 +337,79 @@ print("RMSE:", ann_rmse)
 print("R2:", ann_r2)
 print("MAPE:", ann_mape)
 print("Bias:", ann_bias)
+
+# ===============================
+# Generate Scatter Plots
+# ===============================
+
+import matplotlib.pyplot as plt
+
+# ==============================
+# Predictions for plotting
+# ==============================
+
+# Chlorophyll predictions
+chl_true = y_test
+chl_rf = rf_preds
+chl_svr = svr_preds
+chl_xgb = xgb_preds
+
+# DO predictions
+do_true = y_test
+do_rf = rf_preds
+do_svr = svr_preds
+do_xgb = xgb_preds
+
+# NH3 predictions
+nh3_true = y_test
+nh3_rf = rf_preds
+nh3_svr = svr_preds
+nh3_xgb = xgb_preds
+
+
+# ==============================
+# Create subplot grid
+# ==============================
+
+fig, axes = plt.subplots(3,3, figsize=(15,12))
+
+models = ["XGBoost", "SVR", "Random Forest"]
+params = ["Chlorophyll-a", "Dissolved Oxygen", "NH3-N"]
+
+preds = [
+    [chl_xgb, chl_svr, chl_rf],
+    [do_xgb, do_svr, do_rf],
+    [nh3_xgb, nh3_svr, nh3_rf]
+]
+
+true_vals = [chl_true, do_true, nh3_true]
+
+for i in range(3):
+    for j in range(3):
+
+        ax = axes[i,j]
+
+        ax.scatter(true_vals[i], preds[i][j], alpha=0.7)
+
+        ax.plot(
+            [true_vals[i].min(), true_vals[i].max()],
+            [true_vals[i].min(), true_vals[i].max()],
+            'k--'
+        )
+
+        ax.set_title(f"{models[j]}")
+        ax.set_xlabel("Measured Values")
+        ax.set_ylabel("Predicted Values")
+
+        ax.grid(True)
+
+# Row labels
+axes[0,0].set_ylabel("Chlorophyll-a\nPredicted")
+axes[1,0].set_ylabel("Dissolved Oxygen\nPredicted")
+axes[2,0].set_ylabel("NH3-N\nPredicted")
+
+plt.tight_layout()
+
+plt.savefig("results/model_comparison_scatter.png", dpi=300)
+
+plt.show()
